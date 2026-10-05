@@ -1,0 +1,1078 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Distributed Real-Time Event Processing Pipeline</title>
+    <link rel="preconnect" href="https://fonts.googleapis.com">
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700;800;900&family=JetBrains+Mono:wght@400;500&display=swap" rel="stylesheet">
+    <style>
+        *, *::before, *::after {
+            margin: 0;
+            padding: 0;
+            box-sizing: border-box;
+        }
+
+        :root {
+            --bg-primary: #0a0e1a;
+            --bg-slide: #0f1425;
+            --bg-card: rgba(255, 255, 255, 0.04);
+            --bg-card-hover: rgba(255, 255, 255, 0.07);
+            --accent-blue: #3b82f6;
+            --accent-purple: #8b5cf6;
+            --accent-cyan: #06b6d4;
+            --accent-emerald: #10b981;
+            --accent-orange: #f59e0b;
+            --accent-rose: #f43f5e;
+            --text-primary: #f1f5f9;
+            --text-secondary: #94a3b8;
+            --text-muted: #64748b;
+            --border: rgba(255, 255, 255, 0.08);
+            --gradient-1: linear-gradient(135deg, #3b82f6, #8b5cf6);
+            --gradient-2: linear-gradient(135deg, #06b6d4, #3b82f6);
+            --gradient-3: linear-gradient(135deg, #8b5cf6, #f43f5e);
+            --gradient-4: linear-gradient(135deg, #10b981, #06b6d4);
+            --gradient-5: linear-gradient(135deg, #f59e0b, #f43f5e);
+        }
+
+        html {
+            font-size: 16px;
+            scroll-behavior: smooth;
+        }
+
+        body {
+            font-family: 'Inter', -apple-system, BlinkMacSystemFont, sans-serif;
+            background: var(--bg-primary);
+            color: var(--text-primary);
+            overflow: hidden;
+            height: 100vh;
+            width: 100vw;
+        }
+
+        /* ── Slide Container ── */
+        .presentation {
+            width: 100vw;
+            height: 100vh;
+            position: relative;
+        }
+
+        .slide {
+            position: absolute;
+            top: 0; left: 0;
+            width: 100%;
+            height: 100%;
+            display: flex;
+            flex-direction: column;
+            justify-content: center;
+            align-items: center;
+            padding: 60px 80px;
+            opacity: 0;
+            visibility: hidden;
+            transform: translateX(60px);
+            transition: all 0.6s cubic-bezier(0.22, 1, 0.36, 1);
+            overflow: hidden;
+        }
+
+        .slide.active {
+            opacity: 1;
+            visibility: visible;
+            transform: translateX(0);
+        }
+
+        .slide.exit-left {
+            opacity: 0;
+            transform: translateX(-60px);
+        }
+
+        /* ── Background Decorations ── */
+        .slide::before {
+            content: '';
+            position: absolute;
+            top: -200px;
+            right: -200px;
+            width: 600px;
+            height: 600px;
+            border-radius: 50%;
+            background: radial-gradient(circle, rgba(59, 130, 246, 0.08) 0%, transparent 70%);
+            pointer-events: none;
+            z-index: 0;
+        }
+
+        .slide::after {
+            content: '';
+            position: absolute;
+            bottom: -150px;
+            left: -150px;
+            width: 500px;
+            height: 500px;
+            border-radius: 50%;
+            background: radial-gradient(circle, rgba(139, 92, 246, 0.06) 0%, transparent 70%);
+            pointer-events: none;
+            z-index: 0;
+        }
+
+        .slide > * {
+            position: relative;
+            z-index: 1;
+        }
+
+        /* ── Grid Lines (subtle) ── */
+        .grid-bg {
+            position: absolute;
+            inset: 0;
+            background-image:
+                linear-gradient(rgba(255,255,255,0.015) 1px, transparent 1px),
+                linear-gradient(90deg, rgba(255,255,255,0.015) 1px, transparent 1px);
+            background-size: 60px 60px;
+            pointer-events: none;
+            z-index: 0;
+        }
+
+        /* ── Typography ── */
+        .slide-number {
+            position: absolute;
+            top: 32px;
+            left: 48px;
+            font-size: 0.75rem;
+            font-weight: 600;
+            letter-spacing: 2px;
+            text-transform: uppercase;
+            color: var(--text-muted);
+        }
+
+        .slide-number span {
+            color: var(--accent-blue);
+        }
+
+        h1 {
+            font-size: 3.8rem;
+            font-weight: 800;
+            line-height: 1.1;
+            letter-spacing: -1.5px;
+            margin-bottom: 24px;
+        }
+
+        h2 {
+            font-size: 2.6rem;
+            font-weight: 700;
+            line-height: 1.15;
+            letter-spacing: -1px;
+            margin-bottom: 16px;
+        }
+
+        h3 {
+            font-size: 1.25rem;
+            font-weight: 600;
+            line-height: 1.3;
+            margin-bottom: 12px;
+        }
+
+        .subtitle {
+            font-size: 1.3rem;
+            font-weight: 400;
+            color: var(--text-secondary);
+            line-height: 1.6;
+            max-width: 700px;
+        }
+
+        .gradient-text {
+            background: var(--gradient-1);
+            -webkit-background-clip: text;
+            -webkit-text-fill-color: transparent;
+            background-clip: text;
+        }
+
+        .gradient-text-2 {
+            background: var(--gradient-2);
+            -webkit-background-clip: text;
+            -webkit-text-fill-color: transparent;
+            background-clip: text;
+        }
+
+        .gradient-text-3 {
+            background: var(--gradient-3);
+            -webkit-background-clip: text;
+            -webkit-text-fill-color: transparent;
+            background-clip: text;
+        }
+
+        .gradient-text-4 {
+            background: var(--gradient-4);
+            -webkit-background-clip: text;
+            -webkit-text-fill-color: transparent;
+            background-clip: text;
+        }
+
+        .gradient-text-5 {
+            background: var(--gradient-5);
+            -webkit-background-clip: text;
+            -webkit-text-fill-color: transparent;
+            background-clip: text;
+        }
+
+        p {
+            font-size: 1.05rem;
+            line-height: 1.7;
+            color: var(--text-secondary);
+        }
+
+        /* ── Slide 1: Title ── */
+        .title-slide {
+            text-align: center;
+        }
+
+        .title-slide .badge {
+            display: inline-flex;
+            align-items: center;
+            gap: 8px;
+            background: rgba(59, 130, 246, 0.1);
+            border: 1px solid rgba(59, 130, 246, 0.2);
+            border-radius: 100px;
+            padding: 8px 20px;
+            font-size: 0.8rem;
+            font-weight: 500;
+            color: var(--accent-blue);
+            letter-spacing: 1px;
+            text-transform: uppercase;
+            margin-bottom: 32px;
+            animation: fadeInUp 0.8s ease-out 0.2s both;
+        }
+
+        .badge .dot {
+            width: 8px;
+            height: 8px;
+            border-radius: 50%;
+            background: var(--accent-blue);
+            animation: pulse-dot 2s ease-in-out infinite;
+        }
+
+        @keyframes pulse-dot {
+            0%, 100% { opacity: 1; transform: scale(1); }
+            50% { opacity: 0.5; transform: scale(0.8); }
+        }
+
+        .title-slide h1 {
+            font-size: 4.2rem;
+            animation: fadeInUp 0.8s ease-out 0.4s both;
+        }
+
+        .title-slide .subtitle {
+            margin: 0 auto 40px;
+            animation: fadeInUp 0.8s ease-out 0.6s both;
+        }
+
+        .title-meta {
+            display: flex;
+            align-items: center;
+            gap: 32px;
+            justify-content: center;
+            animation: fadeInUp 0.8s ease-out 0.8s both;
+        }
+
+        .title-meta .meta-item {
+            display: flex;
+            align-items: center;
+            gap: 8px;
+            color: var(--text-muted);
+            font-size: 0.9rem;
+        }
+
+        .title-meta .meta-item svg {
+            width: 18px;
+            height: 18px;
+            opacity: 0.6;
+        }
+
+        .tech-stack {
+            display: flex;
+            gap: 12px;
+            justify-content: center;
+            margin-top: 40px;
+            animation: fadeInUp 0.8s ease-out 1s both;
+        }
+
+        .tech-tag {
+            padding: 8px 18px;
+            border-radius: 8px;
+            font-size: 0.82rem;
+            font-weight: 600;
+            font-family: 'JetBrains Mono', monospace;
+            border: 1px solid var(--border);
+            background: var(--bg-card);
+            color: var(--text-secondary);
+            transition: all 0.3s ease;
+        }
+
+        .tech-tag:hover {
+            background: var(--bg-card-hover);
+            border-color: rgba(255,255,255,0.15);
+            transform: translateY(-2px);
+        }
+
+        .tech-tag.go { border-color: rgba(0, 173, 216, 0.3); color: #00ADD8; }
+        .tech-tag.kafka { border-color: rgba(35, 31, 32, 0.3); color: #f0f0f0; background: rgba(255,255,255,0.06); }
+        .tech-tag.k8s { border-color: rgba(50, 108, 229, 0.3); color: #326CE5; }
+        .tech-tag.keda { border-color: rgba(16, 185, 129, 0.3); color: #10b981; }
+        .tech-tag.prometheus { border-color: rgba(230, 109, 55, 0.3); color: #E6522C; }
+
+        /* ── Content Slides ── */
+        .content-slide {
+            align-items: flex-start;
+            justify-content: flex-start;
+            padding-top: 100px;
+        }
+
+        .section-label {
+            font-size: 0.75rem;
+            font-weight: 600;
+            letter-spacing: 2.5px;
+            text-transform: uppercase;
+            color: var(--accent-blue);
+            margin-bottom: 12px;
+        }
+
+        .content-slide h2 {
+            margin-bottom: 40px;
+        }
+
+        /* ── Cards Grid ── */
+        .cards-grid {
+            display: grid;
+            grid-template-columns: repeat(2, 1fr);
+            gap: 20px;
+            width: 100%;
+            max-width: 1100px;
+        }
+
+        .cards-grid.three-col {
+            grid-template-columns: repeat(3, 1fr);
+        }
+
+        .card {
+            background: var(--bg-card);
+            border: 1px solid var(--border);
+            border-radius: 16px;
+            padding: 28px;
+            transition: all 0.35s ease;
+            position: relative;
+            overflow: hidden;
+        }
+
+        .card::before {
+            content: '';
+            position: absolute;
+            top: 0;
+            left: 0;
+            right: 0;
+            height: 2px;
+            background: var(--gradient-1);
+            opacity: 0;
+            transition: opacity 0.3s ease;
+        }
+
+        .card:hover {
+            background: var(--bg-card-hover);
+            border-color: rgba(255,255,255,0.12);
+            transform: translateY(-3px);
+        }
+
+        .card:hover::before {
+            opacity: 1;
+        }
+
+        .card-icon {
+            width: 44px;
+            height: 44px;
+            border-radius: 12px;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            margin-bottom: 16px;
+            font-size: 1.3rem;
+        }
+
+        .card-icon.blue { background: rgba(59, 130, 246, 0.12); }
+        .card-icon.purple { background: rgba(139, 92, 246, 0.12); }
+        .card-icon.cyan { background: rgba(6, 182, 212, 0.12); }
+        .card-icon.emerald { background: rgba(16, 185, 129, 0.12); }
+        .card-icon.orange { background: rgba(245, 158, 11, 0.12); }
+        .card-icon.rose { background: rgba(244, 63, 94, 0.12); }
+
+        .card h3 {
+            color: var(--text-primary);
+            margin-bottom: 8px;
+        }
+
+        .card p {
+            font-size: 0.92rem;
+            line-height: 1.6;
+            color: var(--text-muted);
+        }
+
+        /* ── Bullet List ── */
+        .bullet-list {
+            list-style: none;
+            display: flex;
+            flex-direction: column;
+            gap: 16px;
+            width: 100%;
+            max-width: 900px;
+        }
+
+        .bullet-list li {
+            display: flex;
+            align-items: flex-start;
+            gap: 14px;
+            font-size: 1.05rem;
+            line-height: 1.65;
+            color: var(--text-secondary);
+        }
+
+        .bullet-list .bullet {
+            flex-shrink: 0;
+            width: 24px;
+            height: 24px;
+            border-radius: 6px;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            font-size: 0.7rem;
+            font-weight: 700;
+            margin-top: 2px;
+            color: white;
+        }
+
+        .bullet.b1 { background: var(--gradient-1); }
+        .bullet.b2 { background: var(--gradient-2); }
+        .bullet.b3 { background: var(--gradient-3); }
+        .bullet.b4 { background: var(--gradient-4); }
+        .bullet.b5 { background: var(--gradient-5); }
+
+        /* ── Literature Review Table ── */
+        .lit-table {
+            width: 100%;
+            max-width: 1100px;
+            border-collapse: separate;
+            border-spacing: 0;
+            margin-top: 8px;
+        }
+
+        .lit-table thead th {
+            text-align: left;
+            padding: 14px 20px;
+            font-size: 0.75rem;
+            font-weight: 600;
+            letter-spacing: 1.5px;
+            text-transform: uppercase;
+            color: var(--text-muted);
+            border-bottom: 1px solid var(--border);
+            background: rgba(255,255,255,0.02);
+        }
+
+        .lit-table thead th:first-child {
+            border-radius: 12px 0 0 0;
+        }
+
+        .lit-table thead th:last-child {
+            border-radius: 0 12px 0 0;
+        }
+
+        .lit-table tbody td {
+            padding: 16px 20px;
+            font-size: 0.92rem;
+            color: var(--text-secondary);
+            border-bottom: 1px solid rgba(255,255,255,0.04);
+            line-height: 1.5;
+            vertical-align: top;
+        }
+
+        .lit-table tbody tr {
+            transition: background 0.2s ease;
+        }
+
+        .lit-table tbody tr:hover {
+            background: rgba(255,255,255,0.03);
+        }
+
+        .lit-table .author {
+            color: var(--text-primary);
+            font-weight: 500;
+            white-space: nowrap;
+        }
+
+        .lit-table .year {
+            font-family: 'JetBrains Mono', monospace;
+            font-size: 0.82rem;
+            color: var(--accent-blue);
+            font-weight: 500;
+        }
+
+        .lit-table .relevance-tag {
+            display: inline-block;
+            padding: 3px 10px;
+            border-radius: 6px;
+            font-size: 0.75rem;
+            font-weight: 600;
+        }
+
+        .relevance-tag.high {
+            background: rgba(16, 185, 129, 0.12);
+            color: var(--accent-emerald);
+        }
+
+        .relevance-tag.medium {
+            background: rgba(245, 158, 11, 0.12);
+            color: var(--accent-orange);
+        }
+
+        /* ── Architecture Diagram ── */
+        .arch-diagram {
+            display: flex;
+            align-items: center;
+            gap: 0;
+            margin: 24px 0 0 0;
+            width: 100%;
+            max-width: 900px;
+            justify-content: center;
+        }
+
+        .arch-node {
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+            gap: 8px;
+            padding: 18px 24px;
+            border-radius: 14px;
+            border: 1px solid var(--border);
+            background: var(--bg-card);
+            min-width: 130px;
+            text-align: center;
+            transition: all 0.3s ease;
+        }
+
+        .arch-node:hover {
+            transform: translateY(-3px);
+            border-color: rgba(255,255,255,0.15);
+        }
+
+        .arch-node .node-icon {
+            font-size: 1.6rem;
+        }
+
+        .arch-node .node-label {
+            font-size: 0.82rem;
+            font-weight: 600;
+            color: var(--text-primary);
+        }
+
+        .arch-node .node-sub {
+            font-size: 0.7rem;
+            color: var(--text-muted);
+            font-family: 'JetBrains Mono', monospace;
+        }
+
+        .arch-arrow {
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+            gap: 4px;
+            padding: 0 6px;
+            color: var(--text-muted);
+        }
+
+        .arch-arrow .arrow-line {
+            font-size: 1.3rem;
+            letter-spacing: -2px;
+            color: var(--accent-blue);
+            opacity: 0.6;
+        }
+
+        .arch-arrow .arrow-label {
+            font-size: 0.6rem;
+            font-weight: 500;
+            color: var(--text-muted);
+            text-transform: uppercase;
+            letter-spacing: 0.5px;
+            white-space: nowrap;
+        }
+
+        /* ── Navigation ── */
+        .nav-bar {
+            position: fixed;
+            bottom: 0;
+            left: 0;
+            right: 0;
+            display: flex;
+            align-items: center;
+            justify-content: space-between;
+            padding: 16px 48px;
+            background: rgba(10, 14, 26, 0.85);
+            backdrop-filter: blur(20px);
+            border-top: 1px solid var(--border);
+            z-index: 100;
+        }
+
+        .nav-progress {
+            display: flex;
+            gap: 8px;
+        }
+
+        .nav-dot {
+            width: 32px;
+            height: 4px;
+            border-radius: 2px;
+            background: rgba(255,255,255,0.1);
+            cursor: pointer;
+            transition: all 0.3s ease;
+        }
+
+        .nav-dot.active {
+            background: var(--accent-blue);
+            width: 48px;
+        }
+
+        .nav-dot:hover {
+            background: rgba(255,255,255,0.2);
+        }
+
+        .nav-buttons {
+            display: flex;
+            gap: 8px;
+        }
+
+        .nav-btn {
+            width: 40px;
+            height: 40px;
+            border-radius: 10px;
+            border: 1px solid var(--border);
+            background: var(--bg-card);
+            color: var(--text-secondary);
+            cursor: pointer;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            transition: all 0.2s ease;
+            font-size: 1.1rem;
+        }
+
+        .nav-btn:hover {
+            background: var(--bg-card-hover);
+            border-color: rgba(255,255,255,0.15);
+            color: var(--text-primary);
+        }
+
+        .nav-btn:disabled {
+            opacity: 0.3;
+            cursor: not-allowed;
+        }
+
+        .nav-info {
+            font-size: 0.8rem;
+            color: var(--text-muted);
+            font-family: 'JetBrains Mono', monospace;
+        }
+
+        /* ── Animations ── */
+        @keyframes fadeInUp {
+            from {
+                opacity: 0;
+                transform: translateY(20px);
+            }
+            to {
+                opacity: 1;
+                transform: translateY(0);
+            }
+        }
+
+        .slide.active .animate-in {
+            animation: fadeInUp 0.6s ease-out both;
+        }
+
+        .slide.active .delay-1 { animation-delay: 0.1s; }
+        .slide.active .delay-2 { animation-delay: 0.2s; }
+        .slide.active .delay-3 { animation-delay: 0.3s; }
+        .slide.active .delay-4 { animation-delay: 0.4s; }
+        .slide.active .delay-5 { animation-delay: 0.5s; }
+        .slide.active .delay-6 { animation-delay: 0.6s; }
+        .slide.active .delay-7 { animation-delay: 0.7s; }
+        .slide.active .delay-8 { animation-delay: 0.8s; }
+
+        /* ── Floating particles ── */
+        .particles {
+            position: absolute;
+            inset: 0;
+            overflow: hidden;
+            pointer-events: none;
+            z-index: 0;
+        }
+
+        .particle {
+            position: absolute;
+            width: 3px;
+            height: 3px;
+            border-radius: 50%;
+            background: var(--accent-blue);
+            opacity: 0.15;
+            animation: float-particle linear infinite;
+        }
+
+        @keyframes float-particle {
+            0% { transform: translateY(100vh) rotate(0deg); opacity: 0; }
+            10% { opacity: 0.15; }
+            90% { opacity: 0.15; }
+            100% { transform: translateY(-10vh) rotate(720deg); opacity: 0; }
+        }
+
+        /* ── Print / PDF ── */
+        @media print {
+            .slide {
+                position: relative;
+                page-break-after: always;
+                opacity: 1;
+                visibility: visible;
+                transform: none;
+                height: 100vh;
+            }
+            .nav-bar { display: none; }
+        }
+    </style>
+</head>
+<body>
+    <div class="presentation" id="presentation">
+
+        <!-- ══════════════ SLIDE 1: TITLE ══════════════ -->
+        <div class="slide title-slide active" data-slide="0">
+            <div class="grid-bg"></div>
+            <div class="particles" id="particles-1"></div>
+
+            <div class="badge">
+                <span class="dot"></span>
+                Cloud-Native Systems Engineering
+            </div>
+
+            <h1>
+                Distributed Real-Time<br>
+                <span class="gradient-text">Event Processing Pipeline</span>
+            </h1>
+
+            <p class="subtitle">
+                A scalable, cloud-native architecture for ingesting, processing, and observing
+                high-throughput event streams using modern infrastructure primitives.
+            </p>
+
+            <div class="tech-stack">
+                <span class="tech-tag go">Go 1.21+</span>
+                <span class="tech-tag kafka">Apache Kafka</span>
+                <span class="tech-tag k8s">Kubernetes</span>
+                <span class="tech-tag keda">KEDA</span>
+                <span class="tech-tag prometheus">Prometheus</span>
+            </div>
+        </div>
+
+        <!-- ══════════════ SLIDE 2: INTRODUCTION ══════════════ -->
+        <div class="slide content-slide" data-slide="1">
+            <div class="grid-bg"></div>
+            <span class="slide-number">Slide <span>02</span> / 05</span>
+
+            <div class="section-label animate-in delay-1">Introduction</div>
+            <h2 class="animate-in delay-2">
+                Why <span class="gradient-text-2">Event-Driven</span> Architecture?
+            </h2>
+
+            <div class="arch-diagram animate-in delay-3">
+                <div class="arch-node">
+                    <span class="node-icon">⚡</span>
+                    <span class="node-label">Producer</span>
+                    <span class="node-sub">Go App</span>
+                </div>
+                <div class="arch-arrow">
+                    <span class="arrow-line">→→→</span>
+                    <span class="arrow-label">JSON Events</span>
+                </div>
+                <div class="arch-node">
+                    <span class="node-icon">📨</span>
+                    <span class="node-label">Kafka</span>
+                    <span class="node-sub">events-topic</span>
+                </div>
+                <div class="arch-arrow">
+                    <span class="arrow-line">→→→</span>
+                    <span class="arrow-label">Consumer Group</span>
+                </div>
+                <div class="arch-node">
+                    <span class="node-icon">⚙️</span>
+                    <span class="node-label">Consumer</span>
+                    <span class="node-sub">Go App</span>
+                </div>
+                <div class="arch-arrow">
+                    <span class="arrow-line">→→→</span>
+                    <span class="arrow-label">Metrics</span>
+                </div>
+                <div class="arch-node">
+                    <span class="node-icon">📊</span>
+                    <span class="node-label">Prometheus</span>
+                    <span class="node-sub">:8080/metrics</span>
+                </div>
+            </div>
+
+            <div class="cards-grid animate-in delay-4" style="margin-top: 32px;">
+                <div class="card">
+                    <div class="card-icon blue">🔀</div>
+                    <h3>Decoupled Services</h3>
+                    <p>Producers and consumers operate independently. Kafka acts as a durable, fault-tolerant buffer between them, enabling asynchronous communication.</p>
+                </div>
+                <div class="card">
+                    <div class="card-icon purple">📈</div>
+                    <h3>Elastic Scalability</h3>
+                    <p>KEDA monitors consumer lag and auto-scales consumer pods. The system adapts to traffic spikes without manual intervention or over-provisioning.</p>
+                </div>
+                <div class="card">
+                    <div class="card-icon cyan">🔍</div>
+                    <h3>Built-in Observability</h3>
+                    <p>Every processed message increments a Prometheus counter. Operators get real-time visibility into throughput, lag, and system health.</p>
+                </div>
+                <div class="card">
+                    <div class="card-icon emerald">🐳</div>
+                    <h3>Cloud-Native by Design</h3>
+                    <p>Multi-stage Docker images, Kubernetes Deployments, health probes, and init containers follow production-grade container orchestration patterns.</p>
+                </div>
+            </div>
+        </div>
+
+        <!-- ══════════════ SLIDE 3: PROBLEM STATEMENT ══════════════ -->
+        <div class="slide content-slide" data-slide="2">
+            <div class="grid-bg"></div>
+            <span class="slide-number">Slide <span>03</span> / 05</span>
+
+            <div class="section-label animate-in delay-1">Problem Statement</div>
+            <h2 class="animate-in delay-2">
+                The Challenge of <span class="gradient-text-3">Real-Time at Scale</span>
+            </h2>
+
+            <ul class="bullet-list animate-in delay-3">
+                <li>
+                    <span class="bullet b1">1</span>
+                    <span><strong style="color: var(--text-primary);">Monolithic Bottlenecks</strong> — Traditional request-response architectures create tight coupling between data producers and consumers, leading to cascading failures and inability to handle bursty workloads.</span>
+                </li>
+                <li>
+                    <span class="bullet b2">2</span>
+                    <span><strong style="color: var(--text-primary);">Manual Scaling is Reactive</strong> — CPU/Memory-based HPA scaling responds to symptoms, not causes. By the time CPU spikes, thousands of events are already queued and SLAs are breached.</span>
+                </li>
+                <li>
+                    <span class="bullet b3">3</span>
+                    <span><strong style="color: var(--text-primary);">Observability Gaps</strong> — Without embedded metrics, operators lack real-time visibility into processing throughput, making it impossible to diagnose lag or data loss before users are impacted.</span>
+                </li>
+                <li>
+                    <span class="bullet b4">4</span>
+                    <span><strong style="color: var(--text-primary);">Data Loss Risk</strong> — Without durable message storage and proper offset management, transient consumer failures can result in dropped events — unacceptable for financial, IoT, or compliance workloads.</span>
+                </li>
+                <li>
+                    <span class="bullet b5">5</span>
+                    <span><strong style="color: var(--text-primary);">Operational Complexity</strong> — Deploying, configuring, and maintaining distributed systems across containers and orchestrators demands a standardized, reproducible infrastructure-as-code approach.</span>
+                </li>
+            </ul>
+        </div>
+
+        <!-- ══════════════ SLIDE 4: OBJECTIVES ══════════════ -->
+        <div class="slide content-slide" data-slide="3">
+            <div class="grid-bg"></div>
+            <span class="slide-number">Slide <span>04</span> / 05</span>
+
+            <div class="section-label animate-in delay-1">Objectives</div>
+            <h2 class="animate-in delay-2">
+                What We <span class="gradient-text-4">Set Out to Build</span>
+            </h2>
+
+            <div class="cards-grid three-col animate-in delay-3">
+                <div class="card">
+                    <div class="card-icon blue">🚀</div>
+                    <h3>O1 — Event Producer</h3>
+                    <p>Build a Go service that generates structured JSON events at 2 events/sec and reliably publishes them to Kafka with graceful shutdown semantics.</p>
+                </div>
+                <div class="card">
+                    <div class="card-icon purple">⚙️</div>
+                    <h3>O2 — Event Consumer</h3>
+                    <p>Build a Go consumer group member that processes events with at-least-once delivery guarantees and exports Prometheus metrics.</p>
+                </div>
+                <div class="card">
+                    <div class="card-icon cyan">📊</div>
+                    <h3>O3 — Observability</h3>
+                    <p>Expose <code style="color: var(--accent-cyan); font-family: 'JetBrains Mono', monospace; font-size: 0.85rem;">kafka_messages_processed_total</code> counter on a standard HTTP endpoint for Prometheus scraping.</p>
+                </div>
+                <div class="card">
+                    <div class="card-icon emerald">🐳</div>
+                    <h3>O4 — Containerization</h3>
+                    <p>Create multi-stage Dockerfiles producing minimal, secure images under 20MB using Alpine base with non-root execution.</p>
+                </div>
+                <div class="card">
+                    <div class="card-icon orange">☸️</div>
+                    <h3>O5 — Orchestration</h3>
+                    <p>Provide Kubernetes Deployment manifests with health probes, resource limits, init containers, and Prometheus scrape annotations.</p>
+                </div>
+                <div class="card">
+                    <div class="card-icon rose">📈</div>
+                    <h3>O6 — Auto-Scaling</h3>
+                    <p>Configure KEDA ScaledObject to scale consumers based on Kafka consumer group lag with a threshold of 10 messages.</p>
+                </div>
+            </div>
+        </div>
+
+        <!-- ══════════════ SLIDE 5: LITERATURE REVIEW ══════════════ -->
+        <div class="slide content-slide" data-slide="4">
+            <div class="grid-bg"></div>
+            <span class="slide-number">Slide <span>05</span> / 05</span>
+
+            <div class="section-label animate-in delay-1">Literature Review</div>
+            <h2 class="animate-in delay-2">
+                Prior Work & <span class="gradient-text-5">Foundations</span>
+            </h2>
+
+            <table class="lit-table animate-in delay-3">
+                <thead>
+                    <tr>
+                        <th>Author / Source</th>
+                        <th>Year</th>
+                        <th>Contribution</th>
+                        <th>Relevance</th>
+                    </tr>
+                </thead>
+                <tbody>
+                    <tr>
+                        <td class="author">Kreps, Narkhede & Rao</td>
+                        <td class="year">2011</td>
+                        <td>Introduced Apache Kafka — a distributed commit log for high-throughput, fault-tolerant event streaming with consumer groups and partitioned topics.</td>
+                        <td><span class="relevance-tag high">High</span></td>
+                    </tr>
+                    <tr>
+                        <td class="author">Burns, Beda & Hightower</td>
+                        <td class="year">2019</td>
+                        <td><em>Kubernetes: Up and Running</em> — foundational patterns for container orchestration, Deployments, Services, and declarative infrastructure.</td>
+                        <td><span class="relevance-tag high">High</span></td>
+                    </tr>
+                    <tr>
+                        <td class="author">KEDA Community (CNCF)</td>
+                        <td class="year">2023</td>
+                        <td>Event-driven autoscaling for Kubernetes. Introduced ScaledObject CRD with native Kafka trigger support and consumer-lag-based scaling.</td>
+                        <td><span class="relevance-tag high">High</span></td>
+                    </tr>
+                    <tr>
+                        <td class="author">Kleppmann, M.</td>
+                        <td class="year">2017</td>
+                        <td><em>Designing Data-Intensive Applications</em> — formalised event sourcing, stream processing guarantees (at-least-once, exactly-once), and backpressure handling.</td>
+                        <td><span class="relevance-tag high">High</span></td>
+                    </tr>
+                    <tr>
+                        <td class="author">Sridharan, C.</td>
+                        <td class="year">2018</td>
+                        <td><em>Distributed Systems Observability</em> — defined the three pillars (metrics, logs, traces) and Prometheus-native instrumentation patterns for Go services.</td>
+                        <td><span class="relevance-tag medium">Medium</span></td>
+                    </tr>
+                </tbody>
+            </table>
+        </div>
+    </div>
+
+    <!-- ── Navigation Bar ── -->
+    <div class="nav-bar">
+        <div class="nav-progress" id="navProgress"></div>
+        <div class="nav-info" id="navInfo">01 / 05</div>
+        <div class="nav-buttons">
+            <button class="nav-btn" id="prevBtn" onclick="changeSlide(-1)" title="Previous (←)">←</button>
+            <button class="nav-btn" id="nextBtn" onclick="changeSlide(1)" title="Next (→)">→</button>
+        </div>
+    </div>
+
+    <script>
+        // ── State ──
+        let currentSlide = 0;
+        const slides = document.querySelectorAll('.slide');
+        const totalSlides = slides.length;
+
+        // ── Build nav dots ──
+        const navProgress = document.getElementById('navProgress');
+        for (let i = 0; i < totalSlides; i++) {
+            const dot = document.createElement('div');
+            dot.className = `nav-dot${i === 0 ? ' active' : ''}`;
+            dot.onclick = () => goToSlide(i);
+            navProgress.appendChild(dot);
+        }
+
+        // ── Slide transitions ──
+        function goToSlide(index) {
+            if (index < 0 || index >= totalSlides || index === currentSlide) return;
+
+            const direction = index > currentSlide ? 1 : -1;
+            
+            slides[currentSlide].classList.remove('active');
+            slides[currentSlide].classList.add(direction > 0 ? 'exit-left' : '');
+            
+            setTimeout(() => {
+                slides[currentSlide].classList.remove('exit-left');
+                currentSlide = index;
+                slides[currentSlide].classList.add('active');
+                updateNav();
+            }, 50);
+
+            currentSlide = index;
+            slides[currentSlide].classList.add('active');
+            updateNav();
+        }
+
+        function changeSlide(delta) {
+            const next = currentSlide + delta;
+            if (next >= 0 && next < totalSlides) {
+                slides[currentSlide].classList.remove('active');
+                currentSlide = next;
+                slides[currentSlide].classList.add('active');
+                updateNav();
+            }
+        }
+
+        function updateNav() {
+            // Update dots
+            document.querySelectorAll('.nav-dot').forEach((dot, i) => {
+                dot.classList.toggle('active', i === currentSlide);
+            });
+
+            // Update info
+            document.getElementById('navInfo').textContent =
+                `${String(currentSlide + 1).padStart(2, '0')} / ${String(totalSlides).padStart(2, '0')}`;
+
+            // Update buttons
+            document.getElementById('prevBtn').disabled = currentSlide === 0;
+            document.getElementById('nextBtn').disabled = currentSlide === totalSlides - 1;
+        }
+
+        // ── Keyboard navigation ──
+        document.addEventListener('keydown', (e) => {
+            if (e.key === 'ArrowRight' || e.key === ' ') {
+                e.preventDefault();
+                changeSlide(1);
+            } else if (e.key === 'ArrowLeft') {
+                e.preventDefault();
+                changeSlide(-1);
+            }
+        });
+
+        // ── Floating particles ──
+        function createParticles(containerId, count) {
+            const container = document.getElementById(containerId);
+            if (!container) return;
+            for (let i = 0; i < count; i++) {
+                const particle = document.createElement('div');
+                particle.className = 'particle';
+                particle.style.left = `${Math.random() * 100}%`;
+                particle.style.animationDuration = `${8 + Math.random() * 12}s`;
+                particle.style.animationDelay = `${Math.random() * 10}s`;
+                particle.style.width = particle.style.height = `${2 + Math.random() * 3}px`;
+                container.appendChild(particle);
+            }
+        }
+
+        createParticles('particles-1', 20);
+
+        // Initialize
+        updateNav();
+    </script>
+</body>
+</html>

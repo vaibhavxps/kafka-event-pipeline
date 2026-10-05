@@ -1,0 +1,390 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Distributed Real-Time Event Processing Pipeline — Print</title>
+    <link rel="preconnect" href="https://fonts.googleapis.com">
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700;800;900&family=JetBrains+Mono:wght@400;500&display=swap" rel="stylesheet">
+    <style>
+        *, *::before, *::after {
+            margin: 0; padding: 0; box-sizing: border-box;
+        }
+
+        :root {
+            --bg-primary: #0a0e1a;
+            --bg-card: rgba(255, 255, 255, 0.04);
+            --accent-blue: #3b82f6;
+            --accent-purple: #8b5cf6;
+            --accent-cyan: #06b6d4;
+            --accent-emerald: #10b981;
+            --accent-orange: #f59e0b;
+            --accent-rose: #f43f5e;
+            --text-primary: #f1f5f9;
+            --text-secondary: #94a3b8;
+            --text-muted: #64748b;
+            --border: rgba(255, 255, 255, 0.08);
+        }
+
+        @page {
+            size: landscape;
+            margin: 0;
+        }
+
+        html { font-size: 14px; }
+
+        body {
+            font-family: 'Inter', -apple-system, BlinkMacSystemFont, sans-serif;
+            background: var(--bg-primary);
+            color: var(--text-primary);
+            -webkit-print-color-adjust: exact;
+            print-color-adjust: exact;
+        }
+
+        /* ── Each slide is one print page ── */
+        .slide {
+            width: 100vw;
+            height: 100vh;
+            padding: 50px 64px;
+            display: flex;
+            flex-direction: column;
+            justify-content: center;
+            position: relative;
+            overflow: hidden;
+            page-break-after: always;
+            background: var(--bg-primary);
+        }
+
+        .slide:last-child { page-break-after: auto; }
+
+        /* Grid background */
+        .slide::before {
+            content: '';
+            position: absolute;
+            inset: 0;
+            background-image:
+                linear-gradient(rgba(255,255,255,0.015) 1px, transparent 1px),
+                linear-gradient(90deg, rgba(255,255,255,0.015) 1px, transparent 1px);
+            background-size: 60px 60px;
+            pointer-events: none;
+        }
+
+        .slide > * { position: relative; z-index: 1; }
+
+        /* ── Slide number ── */
+        .slide-num {
+            position: absolute;
+            top: 28px; left: 48px;
+            font-size: 0.7rem; font-weight: 600;
+            letter-spacing: 2px; text-transform: uppercase;
+            color: var(--text-muted);
+        }
+        .slide-num span { color: var(--accent-blue); }
+
+        /* ── Typography ── */
+        h1 {
+            font-size: 3.4rem; font-weight: 800;
+            line-height: 1.1; letter-spacing: -1.5px;
+            margin-bottom: 20px;
+        }
+        h2 {
+            font-size: 2.2rem; font-weight: 700;
+            line-height: 1.15; letter-spacing: -1px;
+            margin-bottom: 32px;
+        }
+        h3 { font-size: 1.1rem; font-weight: 600; margin-bottom: 8px; }
+
+        .subtitle {
+            font-size: 1.15rem; font-weight: 400;
+            color: var(--text-secondary);
+            line-height: 1.6; max-width: 680px;
+        }
+
+        .section-label {
+            font-size: 0.7rem; font-weight: 600;
+            letter-spacing: 2.5px; text-transform: uppercase;
+            color: var(--accent-blue); margin-bottom: 10px;
+        }
+
+        .gradient-text {
+            background: linear-gradient(135deg, #3b82f6, #8b5cf6);
+            -webkit-background-clip: text; -webkit-text-fill-color: transparent;
+            background-clip: text;
+        }
+        .gradient-text-2 {
+            background: linear-gradient(135deg, #06b6d4, #3b82f6);
+            -webkit-background-clip: text; -webkit-text-fill-color: transparent;
+            background-clip: text;
+        }
+        .gradient-text-3 {
+            background: linear-gradient(135deg, #8b5cf6, #f43f5e);
+            -webkit-background-clip: text; -webkit-text-fill-color: transparent;
+            background-clip: text;
+        }
+        .gradient-text-4 {
+            background: linear-gradient(135deg, #10b981, #06b6d4);
+            -webkit-background-clip: text; -webkit-text-fill-color: transparent;
+            background-clip: text;
+        }
+        .gradient-text-5 {
+            background: linear-gradient(135deg, #f59e0b, #f43f5e);
+            -webkit-background-clip: text; -webkit-text-fill-color: transparent;
+            background-clip: text;
+        }
+
+        p { font-size: 0.92rem; line-height: 1.65; color: var(--text-secondary); }
+
+        /* ── Title slide ── */
+        .title-slide { align-items: center; text-align: center; }
+
+        .badge {
+            display: inline-flex; align-items: center; gap: 8px;
+            background: rgba(59,130,246,0.1);
+            border: 1px solid rgba(59,130,246,0.2);
+            border-radius: 100px; padding: 7px 18px;
+            font-size: 0.72rem; font-weight: 500;
+            color: var(--accent-blue);
+            letter-spacing: 1px; text-transform: uppercase;
+            margin-bottom: 28px;
+        }
+        .badge .dot {
+            width: 7px; height: 7px; border-radius: 50%;
+            background: var(--accent-blue);
+        }
+
+        .title-slide .subtitle { margin: 0 auto 32px; }
+
+        .tech-stack { display: flex; gap: 10px; justify-content: center; margin-top: 32px; }
+        .tech-tag {
+            padding: 7px 16px; border-radius: 8px;
+            font-size: 0.78rem; font-weight: 600;
+            font-family: 'JetBrains Mono', monospace;
+            border: 1px solid var(--border);
+            background: var(--bg-card);
+            color: var(--text-secondary);
+        }
+        .tech-tag.go { border-color: rgba(0,173,216,0.3); color: #00ADD8; }
+        .tech-tag.kafka { border-color: rgba(255,255,255,0.1); color: #f0f0f0; background: rgba(255,255,255,0.06); }
+        .tech-tag.k8s { border-color: rgba(50,108,229,0.3); color: #326CE5; }
+        .tech-tag.keda { border-color: rgba(16,185,129,0.3); color: #10b981; }
+        .tech-tag.prometheus { border-color: rgba(230,109,55,0.3); color: #E6522C; }
+
+        /* ── Architecture Diagram ── */
+        .arch-diagram {
+            display: flex; align-items: center; gap: 0;
+            margin: 20px 0; width: 100%; max-width: 860px; justify-content: center;
+        }
+        .arch-node {
+            display: flex; flex-direction: column; align-items: center; gap: 6px;
+            padding: 14px 20px; border-radius: 12px;
+            border: 1px solid var(--border); background: var(--bg-card);
+            min-width: 110px; text-align: center;
+        }
+        .arch-node .node-icon { font-size: 1.4rem; }
+        .arch-node .node-label { font-size: 0.78rem; font-weight: 600; color: var(--text-primary); }
+        .arch-node .node-sub { font-size: 0.65rem; color: var(--text-muted); font-family: 'JetBrains Mono', monospace; }
+        .arch-arrow { display: flex; flex-direction: column; align-items: center; gap: 3px; padding: 0 4px; }
+        .arch-arrow .arrow-line { font-size: 1.1rem; letter-spacing: -2px; color: var(--accent-blue); opacity: 0.6; }
+        .arch-arrow .arrow-label { font-size: 0.55rem; font-weight: 500; color: var(--text-muted); text-transform: uppercase; letter-spacing: 0.5px; white-space: nowrap; }
+
+        /* ── Cards Grid ── */
+        .cards-grid { display: grid; grid-template-columns: repeat(2, 1fr); gap: 16px; width: 100%; }
+        .cards-grid.three-col { grid-template-columns: repeat(3, 1fr); }
+        .card {
+            background: var(--bg-card); border: 1px solid var(--border);
+            border-radius: 14px; padding: 22px;
+        }
+        .card-icon {
+            width: 38px; height: 38px; border-radius: 10px;
+            display: flex; align-items: center; justify-content: center;
+            margin-bottom: 12px; font-size: 1.15rem;
+        }
+        .card-icon.blue { background: rgba(59,130,246,0.12); }
+        .card-icon.purple { background: rgba(139,92,246,0.12); }
+        .card-icon.cyan { background: rgba(6,182,212,0.12); }
+        .card-icon.emerald { background: rgba(16,185,129,0.12); }
+        .card-icon.orange { background: rgba(245,158,11,0.12); }
+        .card-icon.rose { background: rgba(244,63,94,0.12); }
+        .card h3 { color: var(--text-primary); }
+        .card p { font-size: 0.82rem; line-height: 1.55; color: var(--text-muted); }
+
+        /* ── Bullet List ── */
+        .bullet-list { list-style: none; display: flex; flex-direction: column; gap: 14px; width: 100%; max-width: 900px; }
+        .bullet-list li { display: flex; align-items: flex-start; gap: 12px; font-size: 0.95rem; line-height: 1.6; color: var(--text-secondary); }
+        .bullet {
+            flex-shrink: 0; width: 22px; height: 22px; border-radius: 5px;
+            display: flex; align-items: center; justify-content: center;
+            font-size: 0.65rem; font-weight: 700; margin-top: 2px; color: white;
+        }
+        .bullet.b1 { background: linear-gradient(135deg, #3b82f6, #8b5cf6); }
+        .bullet.b2 { background: linear-gradient(135deg, #06b6d4, #3b82f6); }
+        .bullet.b3 { background: linear-gradient(135deg, #8b5cf6, #f43f5e); }
+        .bullet.b4 { background: linear-gradient(135deg, #10b981, #06b6d4); }
+        .bullet.b5 { background: linear-gradient(135deg, #f59e0b, #f43f5e); }
+
+        /* ── Literature Table ── */
+        .lit-table { width: 100%; border-collapse: separate; border-spacing: 0; }
+        .lit-table thead th {
+            text-align: left; padding: 12px 16px;
+            font-size: 0.68rem; font-weight: 600;
+            letter-spacing: 1.5px; text-transform: uppercase;
+            color: var(--text-muted);
+            border-bottom: 1px solid var(--border);
+            background: rgba(255,255,255,0.02);
+        }
+        .lit-table tbody td {
+            padding: 14px 16px; font-size: 0.85rem;
+            color: var(--text-secondary);
+            border-bottom: 1px solid rgba(255,255,255,0.04);
+            line-height: 1.45; vertical-align: top;
+        }
+        .lit-table .author { color: var(--text-primary); font-weight: 500; white-space: nowrap; }
+        .lit-table .year { font-family: 'JetBrains Mono', monospace; font-size: 0.78rem; color: var(--accent-blue); font-weight: 500; }
+        .relevance-tag {
+            display: inline-block; padding: 2px 9px;
+            border-radius: 5px; font-size: 0.7rem; font-weight: 600;
+        }
+        .relevance-tag.high { background: rgba(16,185,129,0.12); color: var(--accent-emerald); }
+        .relevance-tag.medium { background: rgba(245,158,11,0.12); color: var(--accent-orange); }
+
+        /* ── Download banner (screen only) ── */
+        .download-banner {
+            position: fixed; top: 0; left: 0; right: 0;
+            background: linear-gradient(135deg, #3b82f6, #8b5cf6);
+            color: white; text-align: center;
+            padding: 14px 24px; z-index: 1000;
+            font-size: 0.95rem; font-weight: 500;
+            display: flex; align-items: center; justify-content: center; gap: 16px;
+        }
+        .download-banner button {
+            background: white; color: #3b82f6;
+            border: none; padding: 8px 24px;
+            border-radius: 8px; font-weight: 700;
+            font-size: 0.9rem; cursor: pointer;
+            font-family: 'Inter', sans-serif;
+            transition: transform 0.2s;
+        }
+        .download-banner button:hover { transform: scale(1.05); }
+        @media print { .download-banner { display: none; } }
+    </style>
+</head>
+<body>
+
+    <!-- Download banner -->
+    <div class="download-banner">
+        Press <strong>Ctrl + P</strong> → "Save as PDF" to download this presentation
+        <button onclick="window.print()">⬇ Save as PDF</button>
+    </div>
+
+    <!-- ══════════════ SLIDE 1: TITLE ══════════════ -->
+    <div class="slide title-slide">
+        <div class="badge"><span class="dot"></span> Cloud-Native Systems Engineering</div>
+        <h1>Distributed Real-Time<br><span class="gradient-text">Event Processing Pipeline</span></h1>
+        <p class="subtitle">A scalable, cloud-native architecture for ingesting, processing, and observing high-throughput event streams using modern infrastructure primitives.</p>
+        <div class="tech-stack">
+            <span class="tech-tag go">Go 1.21+</span>
+            <span class="tech-tag kafka">Apache Kafka</span>
+            <span class="tech-tag k8s">Kubernetes</span>
+            <span class="tech-tag keda">KEDA</span>
+            <span class="tech-tag prometheus">Prometheus</span>
+        </div>
+    </div>
+
+    <!-- ══════════════ SLIDE 2: INTRODUCTION ══════════════ -->
+    <div class="slide">
+        <span class="slide-num">Slide <span>02</span> / 05</span>
+        <div class="section-label">Introduction</div>
+        <h2>Why <span class="gradient-text-2">Event-Driven</span> Architecture?</h2>
+        <div class="arch-diagram">
+            <div class="arch-node"><span class="node-icon">⚡</span><span class="node-label">Producer</span><span class="node-sub">Go App</span></div>
+            <div class="arch-arrow"><span class="arrow-line">→→→</span><span class="arrow-label">JSON Events</span></div>
+            <div class="arch-node"><span class="node-icon">📨</span><span class="node-label">Kafka</span><span class="node-sub">events-topic</span></div>
+            <div class="arch-arrow"><span class="arrow-line">→→→</span><span class="arrow-label">Consumer Group</span></div>
+            <div class="arch-node"><span class="node-icon">⚙️</span><span class="node-label">Consumer</span><span class="node-sub">Go App</span></div>
+            <div class="arch-arrow"><span class="arrow-line">→→→</span><span class="arrow-label">Metrics</span></div>
+            <div class="arch-node"><span class="node-icon">📊</span><span class="node-label">Prometheus</span><span class="node-sub">:8080/metrics</span></div>
+        </div>
+        <div class="cards-grid" style="margin-top: 24px;">
+            <div class="card"><div class="card-icon blue">🔀</div><h3>Decoupled Services</h3><p>Producers and consumers operate independently. Kafka acts as a durable, fault-tolerant buffer enabling asynchronous communication.</p></div>
+            <div class="card"><div class="card-icon purple">📈</div><h3>Elastic Scalability</h3><p>KEDA monitors consumer lag and auto-scales consumer pods. The system adapts to traffic spikes without manual intervention.</p></div>
+            <div class="card"><div class="card-icon cyan">🔍</div><h3>Built-in Observability</h3><p>Every processed message increments a Prometheus counter. Operators get real-time visibility into throughput and system health.</p></div>
+            <div class="card"><div class="card-icon emerald">🐳</div><h3>Cloud-Native by Design</h3><p>Multi-stage Docker images, K8s Deployments, health probes, and init containers follow production-grade patterns.</p></div>
+        </div>
+    </div>
+
+    <!-- ══════════════ SLIDE 3: PROBLEM STATEMENT ══════════════ -->
+    <div class="slide">
+        <span class="slide-num">Slide <span>03</span> / 05</span>
+        <div class="section-label">Problem Statement</div>
+        <h2>The Challenge of <span class="gradient-text-3">Real-Time at Scale</span></h2>
+        <ul class="bullet-list">
+            <li><span class="bullet b1">1</span><span><strong style="color: var(--text-primary);">Monolithic Bottlenecks</strong> — Traditional request-response architectures create tight coupling, leading to cascading failures and inability to handle bursty workloads.</span></li>
+            <li><span class="bullet b2">2</span><span><strong style="color: var(--text-primary);">Manual Scaling is Reactive</strong> — CPU/Memory-based HPA scaling responds to symptoms, not causes. By the time CPU spikes, thousands of events are already queued.</span></li>
+            <li><span class="bullet b3">3</span><span><strong style="color: var(--text-primary);">Observability Gaps</strong> — Without embedded metrics, operators lack real-time visibility into processing throughput, making it impossible to diagnose lag before users are impacted.</span></li>
+            <li><span class="bullet b4">4</span><span><strong style="color: var(--text-primary);">Data Loss Risk</strong> — Without durable message storage and proper offset management, transient failures can result in dropped events — unacceptable for critical workloads.</span></li>
+            <li><span class="bullet b5">5</span><span><strong style="color: var(--text-primary);">Operational Complexity</strong> — Deploying distributed systems across containers and orchestrators demands a standardized, reproducible infrastructure-as-code approach.</span></li>
+        </ul>
+    </div>
+
+    <!-- ══════════════ SLIDE 4: OBJECTIVES ══════════════ -->
+    <div class="slide">
+        <span class="slide-num">Slide <span>04</span> / 05</span>
+        <div class="section-label">Objectives</div>
+        <h2>What We <span class="gradient-text-4">Set Out to Build</span></h2>
+        <div class="cards-grid three-col">
+            <div class="card"><div class="card-icon blue">🚀</div><h3>O1 — Event Producer</h3><p>Go service generating structured JSON events at 2 events/sec, reliably publishing to Kafka with graceful shutdown.</p></div>
+            <div class="card"><div class="card-icon purple">⚙️</div><h3>O2 — Event Consumer</h3><p>Consumer group member processing events with at-least-once delivery guarantees and Prometheus metrics export.</p></div>
+            <div class="card"><div class="card-icon cyan">📊</div><h3>O3 — Observability</h3><p>Expose <code style="color: var(--accent-cyan); font-family: 'JetBrains Mono', monospace; font-size: 0.78rem;">kafka_messages_processed_total</code> counter on HTTP endpoint for Prometheus.</p></div>
+            <div class="card"><div class="card-icon emerald">🐳</div><h3>O4 — Containerization</h3><p>Multi-stage Dockerfiles producing minimal, secure images under 20MB using Alpine with non-root execution.</p></div>
+            <div class="card"><div class="card-icon orange">☸️</div><h3>O5 — Orchestration</h3><p>K8s Deployment manifests with health probes, resource limits, init containers, and Prometheus annotations.</p></div>
+            <div class="card"><div class="card-icon rose">📈</div><h3>O6 — Auto-Scaling</h3><p>KEDA ScaledObject scaling consumers based on Kafka consumer group lag with threshold of 10 messages.</p></div>
+        </div>
+    </div>
+
+    <!-- ══════════════ SLIDE 5: LITERATURE REVIEW ══════════════ -->
+    <div class="slide">
+        <span class="slide-num">Slide <span>05</span> / 05</span>
+        <div class="section-label">Literature Review</div>
+        <h2>Prior Work & <span class="gradient-text-5">Foundations</span></h2>
+        <table class="lit-table">
+            <thead>
+                <tr><th>Author / Source</th><th>Year</th><th>Contribution</th><th>Relevance</th></tr>
+            </thead>
+            <tbody>
+                <tr>
+                    <td class="author">Kreps, Narkhede & Rao</td>
+                    <td class="year">2011</td>
+                    <td>Introduced Apache Kafka — a distributed commit log for high-throughput, fault-tolerant event streaming with consumer groups and partitioned topics.</td>
+                    <td><span class="relevance-tag high">High</span></td>
+                </tr>
+                <tr>
+                    <td class="author">Burns, Beda & Hightower</td>
+                    <td class="year">2019</td>
+                    <td><em>Kubernetes: Up and Running</em> — foundational patterns for container orchestration, Deployments, Services, and declarative infrastructure.</td>
+                    <td><span class="relevance-tag high">High</span></td>
+                </tr>
+                <tr>
+                    <td class="author">KEDA Community (CNCF)</td>
+                    <td class="year">2023</td>
+                    <td>Event-driven autoscaling for Kubernetes. ScaledObject CRD with native Kafka trigger support and consumer-lag-based scaling.</td>
+                    <td><span class="relevance-tag high">High</span></td>
+                </tr>
+                <tr>
+                    <td class="author">Kleppmann, M.</td>
+                    <td class="year">2017</td>
+                    <td><em>Designing Data-Intensive Applications</em> — formalised event sourcing, stream processing guarantees, and backpressure handling.</td>
+                    <td><span class="relevance-tag high">High</span></td>
+                </tr>
+                <tr>
+                    <td class="author">Sridharan, C.</td>
+                    <td class="year">2018</td>
+                    <td><em>Distributed Systems Observability</em> — three pillars (metrics, logs, traces) and Prometheus-native instrumentation patterns for Go.</td>
+                    <td><span class="relevance-tag medium">Medium</span></td>
+                </tr>
+            </tbody>
+        </table>
+    </div>
+
+</body>
+</html>

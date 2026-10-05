@@ -1,0 +1,46 @@
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: producer
+  labels:
+    app: producer
+spec:
+  replicas: 1
+  selector:
+    matchLabels:
+      app: producer
+  template:
+    metadata:
+      labels:
+        app: producer
+    spec:
+      containers:
+        - name: producer
+          image: pipeline/producer:latest
+          imagePullPolicy: IfNotPresent
+          env:
+            - name: KAFKA_BROKERS
+              value: "kafka:9092"
+            - name: KAFKA_TOPIC
+              value: "events-topic"
+          resources:
+            requests:
+              memory: "64Mi"
+              cpu: "100m"
+            limits:
+              memory: "128Mi"
+              cpu: "250m"
+      # Ensure Kafka is reachable before starting the producer
+      initContainers:
+        - name: wait-for-kafka
+          image: busybox:1.36
+          command:
+            - sh
+            - -c
+            - |
+              echo "Waiting for Kafka to be ready..."
+              until nc -z kafka 9092; do
+                echo "Kafka not ready yet, retrying in 3s..."
+                sleep 3
+              done
+              echo "Kafka is ready!"
