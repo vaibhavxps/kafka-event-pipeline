@@ -6,7 +6,6 @@
 [![KEDA](https://img.shields.io/badge/KEDA-v2.13-F6851F?style=flat&logo=cncf)](https://keda.sh)
 [![Prometheus](https://img.shields.io/badge/Prometheus-Metrics-E6522C?style=flat&logo=prometheus)](https://prometheus.io)
 [![Docker](https://img.shields.io/badge/Docker-Alpine%20Multi--Stage-2496ED?style=flat&logo=docker)](https://docker.com)
-[![Status](https://img.shields.io/badge/Milestone-Review%20II%20(~65%25)-blue)](#current-implementation-status)
 
 An elastic, cloud-native streaming pipeline designed to demonstrate **queue-lag-driven horizontal autoscaling**, **resilient asynchronous event ingestion**, and **end-to-end telemetry** on Kubernetes (GKE).
 
@@ -737,7 +736,7 @@ Exploring and running this codebase demonstrates several foundational distribute
 4. **Systems-Level Kafka Mechanics:** Working directly with consumer groups, partition balancing algorithms, commit offsets, and rebalance storms.
 5. **Production Kubernetes Deployment:** Writing resilient manifests featuring TCP init containers, health probes, resource quotas, and multi-stage container security.
 
----
+<!--
 
 ## Technical Interview Preparation
 
@@ -773,7 +772,7 @@ Here are ten realistic technical interview questions grounded directly in this r
 #### Q10: What infrastructure trade-offs were made between this milestone and a production deployment?
 > **Answer:** This milestone prioritizes minimal cost and resource efficiency for demonstration: it uses a single-broker Kafka deployment without persistent volume claims, runs Zookeeper instead of KRaft, simulates processing using `time.Sleep`, and commits bad records past instead of routing them to a Dead Letter Queue (DLQ). A production-grade deployment would implement a 3-broker KRaft StatefulSet, persistent NVMe storage, schema validation via Schema Registry, and DLQ topic routing.
 
----
+-->
 
 ## Teardown & Cleanup
 
